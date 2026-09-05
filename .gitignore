@@ -1,0 +1,9 @@
+out/
+tests/out/
+build/
+.gradle/
+.idea/
+*.class
+records.txt
+records.txt.tmp
+beast-state.txt
