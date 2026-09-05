@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Workshop · the client</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Be+Vietnam+Pro:wght@500;700;800&display=swap">
+<style>
+  :root{
+    --sky1:#0d1440; --sky2:#3b2a7a; --sky3:#b8557a; --sky4:#f2a65a;
+    --ink:#fff7e6; --ink2:#ffe6b3; --ink3:#c9b48a; --brown:#3a1c00;
+    --gold:#ffcc33; --jade:#5ff2b0; --crimson:#ff4d5e; --wood:#5a3a1e; --wood2:#8b5a2b; --violet:#b8a8ff;
+    --game:"Bangers",Impact,"Arial Black",sans-serif;
+    --f:"Be Vietnam Pro",system-ui,"Segoe UI",sans-serif;
+    --m:ui-monospace,Consolas,monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{color:var(--ink);font-family:var(--f);min-height:100vh;background:linear-gradient(180deg,var(--sky1),var(--sky2) 40%,var(--sky3) 75%,var(--sky4));background-attachment:fixed}
+  .cloud{position:fixed;top:18vh;left:-40vw;width:30vw;height:8vh;border-radius:50%;filter:blur(10px);background:rgba(255,235,220,.14);animation:drift 80s linear infinite;pointer-events:none;z-index:0}
+  .cloud.c2{top:55vh;width:22vw;animation-duration:60s;animation-delay:-30s}
+  @keyframes drift{from{transform:translateX(0)}to{transform:translateX(180vw)}}
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:18px 16px 60px;display:flex;flex-direction:column;gap:14px}
+  .hidden{display:none!important}
+
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .logo{font-family:var(--game);font-size:28px;letter-spacing:.05em;text-shadow:0 3px 0 #3a1c4a,0 6px 10px rgba(0,0,0,.4)}
+  .logo .a{color:var(--jade)} .logo .b{color:var(--gold)}
+  .sp{flex:1}
+  .badge{font-family:var(--m);font-size:11px;padding:5px 10px;border-radius:20px;background:rgba(20,12,40,.6);color:var(--ink3);border:1px solid rgba(255,220,150,.3)}
+  .badge.on{color:var(--jade);border-color:var(--jade)}
+  .badge.me{color:var(--gold);border-color:var(--gold);font-weight:700}
+  .badge.err{color:var(--crimson);border-color:var(--crimson)}
+
+  .card{background:rgba(20,12,40,.55);border:3px solid rgba(255,220,150,.35);border-radius:18px;padding:16px;box-shadow:inset 0 0 24px rgba(0,0,0,.35),0 8px 16px rgba(0,0,0,.35);backdrop-filter:blur(3px)}
+  h2{font-family:var(--game);font-size:22px;letter-spacing:.06em;color:var(--gold);margin-bottom:10px;text-shadow:0 2px 0 #3a1c00}
+  label{display:block;font-family:var(--game);font-size:14px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px}
+  input[type=text]{width:100%;background:#fff2cc;border:3px solid var(--wood2);color:var(--brown);font-family:var(--f);font-size:15.5px;font-weight:700;padding:11px 13px;border-radius:12px;outline:none;box-shadow:inset 0 3px 6px rgba(0,0,0,.2)}
+  input[type=text]:focus{border-color:var(--gold)}
+  textarea{width:100%;background:#1a1030;border:3px solid var(--wood2);color:var(--jade);font-family:var(--m);font-size:15px;line-height:1.6;padding:12px;border-radius:12px;outline:none;resize:vertical;min-height:88px}
+  textarea:focus{border-color:var(--gold)}
+  textarea::placeholder{color:#6a5a8a}
+  .row{display:flex;gap:9px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:130px}
+  .srv{display:flex;gap:8px;align-items:flex-end}
+  .srv .fl{flex:1}
+  .status{font-family:var(--m);font-size:12.5px;margin-top:9px;color:var(--ink3)}
+  .status.on{color:var(--jade)} .status.err{color:var(--crimson)}
+  button{font-family:var(--game);letter-spacing:.06em;border:3px solid var(--brown);border-radius:14px;cursor:pointer;font-size:18px;padding:11px 14px;background:linear-gradient(180deg,#fff2cc,#f2d08a);color:var(--brown);white-space:nowrap;box-shadow:0 5px 0 var(--wood),0 8px 12px rgba(0,0,0,.35);transition:transform .05s}
+  button:hover{filter:brightness(1.08)}
+  button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--wood)}
+  button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.5)}
+  button.jade{background:linear-gradient(180deg,#d8ffe9,#5ff2b0);box-shadow:0 5px 0 #0b3a2a,0 8px 12px rgba(0,0,0,.35)}
+  button.red{background:linear-gradient(180deg,#ffb3b3,#ff4d5e);color:#3a0010;box-shadow:0 5px 0 #5a0010,0 8px 12px rgba(0,0,0,.35)}
+
+  .log{background:#1a1030;border:3px solid var(--wood2);border-radius:12px;padding:11px;font-family:var(--m);font-size:12.5px;line-height:1.65;max-height:300px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:5px}
+  .log .l{white-space:pre-wrap;word-break:break-all}
+  .log .out{color:var(--gold)}
+  .log .in{color:var(--jade)}
+  .log .err{color:var(--crimson)}
+  .log .hub{color:var(--violet)}
+  .log .t{color:var(--ink3)}
+  .empty{color:var(--ink3)}
+
+  .stat{display:flex;gap:10px}
+  .stat .b{flex:1;background:rgba(0,0,0,.25);border:2px solid rgba(255,220,150,.25);border-radius:14px;padding:12px 14px;min-width:0;display:flex;align-items:center;gap:12px}
+  .stat .em{font-size:34px;line-height:1;animation:flap 1.6s ease-in-out infinite}
+  .stat .v{font-family:var(--game);font-size:34px;line-height:1;letter-spacing:.04em}
+  .stat .k{font-family:var(--m);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:4px}
+  .stat .v.j{color:var(--jade);text-shadow:0 3px 0 #0b3a2a}
+  .stat .v.g{color:var(--gold);text-shadow:0 3px 0 #3a1c00}
+  @keyframes flap{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-3px) rotate(8deg)}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .broadcast{background:linear-gradient(180deg,#fff7b0,#ffd23f);border:3px solid var(--brown);border-radius:18px;padding:16px 18px;display:none;color:var(--brown);box-shadow:0 5px 0 #8a6a00,0 0 30px rgba(255,204,51,.5);margin-top:12px}
+  .broadcast.on{display:flex;align-items:center;gap:14px;animation:swoop .9s cubic-bezier(.2,.9,.3,1)}
+  .broadcast .em{font-size:52px;line-height:1}
+  .broadcast .t{font-family:var(--game);font-size:24px;letter-spacing:.04em;line-height:1.2;flex:1}
+  .broadcast .s{font-family:var(--m);font-size:11px;color:#8b5a2b;margin-top:6px}
+  @keyframes swoop{from{opacity:0;transform:translate(-60vw,-20vh) rotate(-20deg) scale(.5)}to{opacity:1;transform:none}}
+
+  .beast{display:none;background:rgba(40,5,20,.6);border:3px solid var(--crimson);border-radius:18px;padding:16px;box-shadow:0 0 30px rgba(255,77,94,.35)}
+  .beast.on{display:block}
+  .beast .nm{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .beast .bem{font-size:56px;line-height:1;animation:bob 1.8s ease-in-out infinite}
+  .beast .bem.hurt,.hpbar.hurt{animation:shake .3s linear}
+  .beast .bname{font-family:var(--game);font-size:34px;letter-spacing:.06em;color:var(--crimson);text-shadow:0 3px 0 #3a0010}
+  .beast .hpnum{font-family:var(--game);font-size:20px;color:var(--ink);margin-left:auto;letter-spacing:.04em}
+  .hpwrap{position:relative}
+  .hpbar{height:26px;background:#1a0a12;border:3px solid #ffd9a8;border-radius:16px;overflow:hidden;margin:11px 0 4px;box-shadow:inset 0 3px 6px rgba(0,0,0,.7)}
+  .hpbar i{display:block;height:100%;width:100%;transition:width .25s;background:repeating-linear-gradient(90deg,#ff2d4a 0 18px,#ff6a5b 18px 21px)}
+  .dmg{position:absolute;top:-6px;font-family:var(--game);font-size:26px;color:var(--gold);text-shadow:0 2px 0 #3a1c00,0 0 10px #ffcc33;pointer-events:none;animation:floatup 1s ease-out forwards}
+  @keyframes floatup{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-50px) scale(1.4)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+  .hit{font-family:var(--m);font-size:11.5px;color:var(--ink3);min-height:16px}
+  .dead{text-align:center;padding:10px 0 4px}
+  .dead .k{font-family:var(--game);font-size:26px;letter-spacing:.06em;color:var(--gold);text-shadow:0 3px 0 #3a1c00}
+
+  ol.board{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:11px}
+  ol.board li{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:800;background:linear-gradient(180deg,#fff2cc,#f2d08a);color:var(--brown);padding:8px 11px;border-radius:10px;border:2px solid var(--wood2);box-shadow:0 3px 0 var(--wood)}
+  ol.board .r{width:24px;text-align:center}
+  ol.board .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ol.board .d{font-family:var(--game);font-size:16px;color:#b3001b;letter-spacing:.04em}
+  ol.board li.me{outline:3px solid var(--gold)}
+  .hint{font-size:13.5px;color:var(--ink2);line-height:1.55}
+  .hint code{font-family:var(--m);font-size:12px;background:rgba(0,0,0,.35);padding:2px 5px;border-radius:4px;color:var(--jade)}
+
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(13,20,64,.88);z-index:20;text-align:center;padding:5vw}
+  .overlay.on{display:flex}
+  .overlay .em{font-size:110px;line-height:1;animation:bob 1s ease-in-out infinite}
+  .overlay .t{font-family:var(--game);font-size:42px;letter-spacing:.06em;color:var(--gold);text-shadow:0 4px 0 #3a1c00;margin-top:12px;line-height:1.1}
+  .overlay .s{font-size:18px;color:var(--ink2);margin-top:10px;max-width:600px}
+  .overlay.red{background:rgba(120,0,20,.92);animation:blink .5s steps(2) infinite}
+  @keyframes blink{from{background:rgba(120,0,20,.92)}to{background:rgba(255,40,60,.95)}}
+  canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:15;display:none}
+</style>
+</head>
+<body>
+<div class="cloud"></div><div class="cloud c2"></div>
+<canvas id="fx"></canvas>
+
+<div class="wrap">
+
+  <header>
+    <div class="logo"><span class="a">Client</span> <span class="b">· the client</span></div>
+    <div class="sp"></div>
+    <span class="badge" id="me">chưa gọi</span>
+    <span class="badge" id="conn">Disconnected</span>
+  </header>
+
+  <div class="card">
+    <label for="srv">Máy chủ / server</label>
+    <div class="srv">
+      <div class="fl"><input type="text" id="srv" spellcheck="false" autocomplete="off" placeholder="localhost:9000"></div>
+      <button id="btnConnect">Connect</button>
+    </div>
+    <div class="status" id="connStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>Gói tin gửi đi</h2>
+    <textarea id="raw" spellcheck="false" placeholder="gõ một dòng JSON rồi Enter"></textarea>
+    <div class="row" style="margin-top:11px"><button id="sendRaw" class="jade">Gửi ⏎</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Nhật ký / log</h2>
+    <div class="log" id="log"><div class="l empty">chưa có gì…</div></div>
+  </div>
+
+  <div class="card hidden" id="onlineBox">
+    <div class="stat">
+      <div class="b"><span class="em"></span><div><div class="v j" id="online">0</div><div class="k">người online</div></div></div>
+      <div class="b"><span class="em" style="animation:none">🏷️</span><div><div class="v g" id="uid">—</div><div class="k">số hiệu · <span id="meGroup">—</span></div></div></div>
+    </div>
+    <div class="broadcast" id="broadcastBox">
+      <div class="em"></div>
+      <div><div class="t" id="broadcastText"></div><div class="s">server trả lời</div></div>
+    </div>
+  </div>
+
+  <div class="beast" id="beastBox">
+    <div class="nm"><span class="bem" id="beastEm">🐉</span><span class="bname" id="beastName">—</span><span class="hpnum" id="beastHp"></span></div>
+    <div class="hpwrap"><div class="hpbar" id="hpbar"><i id="beastBar"></i></div></div>
+    <div class="hit" id="lastHit"></div>
+    <div class="dead hidden" id="deadBox"><div class="k" id="deadText"></div></div>
+    <ol class="board" id="board"></ol>
+  </div>
+
+  <div class="card hidden" id="recordsBox">
+    <h2>🏅 Kỷ lục (database)</h2>
+    <ol class="board" id="records"></ol>
+    <p class="hint" style="margin-top:8px">Gửi <code>{"cmd":"records"}</code> để đọc. Tắt server bật lại vẫn còn — vì nó nằm trong database, không nằm trong RAM.</p>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay"><div class="em" id="ovEm"></div><div class="t" id="ovT"></div><div class="s" id="ovS"></div></div>
+
+<script>
+const CODES = { online: 'Online', sieuthu: 'Đánh boss', kyluc: 'Kỷ lục' };
+
+const STAMP = '__SERVER__';
+const LOCAL = 'localhost:9000';
+
+const RETRY_MS     = 2000;
+const SPOTLIGHT_MS = 10000;
+const LOG_MAX      = 120;
+const BEAST_EMOJI  = { 'Xích Long':'🐉', 'Hắc Hổ':'🐯', 'Bạch Xà':'🐍', 'Kim Ngưu':'🐂', 'Thanh Lôi':'⚡' };
+const MEDALS       = ['🥇','🥈','🥉'];
+
+const $  = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const store  = (key, value) => { try { localStorage.setItem(key, value); } catch (e) {} };
+const recall = key => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+
+const ARROW = { out: ' →  ', in: ' ←  ', err: ' ←  ', hub: ' ⇢ ws-2026-server.zingplay.dev  ' };
+function log(kind, text) {
+  const box = $('log');
+  const placeholder = box.querySelector('.empty');
+  if (placeholder) placeholder.remove();
+  const line = document.createElement('div');
+  line.className = 'l ' + kind;
+  line.innerHTML = '<span class="t">' + new Date().toTimeString().slice(0, 8) + ARROW[kind] + '</span>';
+  line.appendChild(document.createTextNode(text));
+  box.prepend(line);
+  while (box.children.length > LOG_MAX) box.lastChild.remove();
+}
+
+let ws = null;
+let hub = null;
+let me = null;
+let beast = null;
+let lastHp = null;
+let teacherHost = STAMP.charAt(0) === '_' ? recall('ws_teacher') : STAMP;
+let connState = 'off';
+let retryTimer = null;
+
+function wsUrl(host) {
+  const secure = location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)(:|$)/.test(host);
+  return (secure ? 'wss://' : 'ws://') + host + '/ws';
+}
+
+const CONN_UI = {
+  off:        { btn: 'Connect',     cls: '',    badge: 'Disconnected', st: '○ Disconnected — press Connect',                       stCls: '' },
+  connecting: { btn: 'Connecting…', cls: '',    badge: 'Connecting…',  st: '◌ Connecting to HOST…',                               stCls: '' },
+  on:         { btn: 'Disconnect',  cls: 'red', badge: 'Connected',    st: '● Connected to HOST',                                 stCls: 'on' },
+  failed:     { btn: 'Connect',     cls: '',    badge: 'Failed',       st: '✖ Cannot connect to HOST — server chưa chạy? (kiểm tra cửa sổ run.bat)', stCls: 'err' },
+  retrying:   { btn: 'Disconnect',  cls: 'red', badge: 'Retrying…',    st: '◌ Connection to HOST lost — retrying every 2 s',      stCls: 'err' },
+};
+function setConn(state, host) {
+  connState = state;
+  const ui = CONN_UI[state];
+  const btn = $('btnConnect');
+  btn.textContent = ui.btn;
+  btn.className = ui.cls;
+  btn.disabled = state === 'connecting';
+  $('conn').textContent = ui.badge + (state === 'on' ? ' · ' + host : '');
+  $('conn').className = 'badge ' + (state === 'on' ? 'on' : ui.stCls === 'err' ? 'err' : '');
+  $('connStatus').textContent = ui.st.replace('HOST', host || '');
+  $('connStatus').className = 'status ' + ui.stCls;
+}
+
+function connect() {
+  const host = ($('srv').value || LOCAL).trim().replace(/^wss?:\/\//, '').replace(/\/+$/, '');
+  $('srv').value = host;
+  store('ws_srv', host);
+  dropSocket();
+  forgetIdentity();
+  setConn('connecting', host);
+
+  let opened = false;
+  try { ws = new WebSocket(wsUrl(host)); } catch (e) { setConn('failed', host); return; }
+  ws.onopen = () => { opened = true; setConn('on', host); };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+  ws.onclose = () => {
+    if (opened) { setConn('retrying', host); retryTimer = setTimeout(connect, RETRY_MS); }
+    else setConn('failed', host);
+  };
+  ws.onmessage = event => {
+    const text = String(event.data);
+    log('in', text);
+    let packet;
+    try { packet = JSON.parse(text); } catch (e) { return; }
+    if (packet && packet.cmd) handle(packet, host);
+  };
+}
+function disconnect() {
+  dropSocket();
+  setConn('off', $('srv').value);
+}
+function dropSocket() {
+  clearTimeout(retryTimer);
+  if (ws) { ws.onclose = null; ws.onerror = null; try { ws.close(); } catch (e) {} ws = null; }
+  closeHub();
+}
+function forgetIdentity() {
+  me = null; beast = null; lastHp = null;
+  $('me').textContent = 'chưa gọi'; $('me').className = 'badge';
+  $('uid').textContent = '—';
+  $('beastBox').classList.remove('on');
+  $('broadcastBox').classList.remove('on');
+}
+
+function send(text) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) { log('err', 'chưa nối server — bấm Connect'); return; }
+  ws.send(text);
+  log('out', text);
+}
+function sendBox() {
+  const text = $('raw').value.trim();
+  if (text) send(text);
+  else log('err', 'ô trống — gõ một dòng JSON trước, ví dụ {"cmd":"call"}');
+}
+
+function handle(m, host) {
+  switch (m.cmd) {
+    case 'welcome':   onWelcome(m, host); break;
+    case 'online':     $('online').textContent = m.count; break;
+    case 'broadcast':     $('broadcastText').textContent = m.text || ''; $('broadcastBox').classList.add('on'); break;
+    case 'beast':     onBeast(m); break;
+    case 'slain':     onSlain(m); break;
+    case 'board':     paintList($('board'), m.top, r => r.total, r => me && r.uid === me.uid); break;
+    case 'records':   paintList($('records'), m.top, r => r.best, r => me && r.name === me.name); break;
+    case 'reset':     onReset(); break;
+    case 'spotlight': spotlight(m); break;
+    case 'error':     log('err', m.text || 'lỗi'); break;
+  }
+}
+function onWelcome(m, host) {
+  me = { uid: m.uid, name: m.name || '', group: m.group || '-' };
+  store('se_me', JSON.stringify(me));
+  $('uid').textContent = '#' + m.uid;
+  $('meGroup').textContent = me.group;
+  $('me').textContent = '#' + m.uid + ' ' + me.name + ' · ' + me.group;
+  $('me').className = 'badge me';
+  if (m.teacher) { teacherHost = host; store('ws_teacher', host); }
+  else openHub();
+}
+function onBeast(m) {
+  beast = m;
+  $('beastEm').textContent = BEAST_EMOJI[m.name] || '👹';
+  if (lastHp !== null && m.hp < lastHp) hurt(lastHp - m.hp);
+  lastHp = m.hp;
+  $('beastName').textContent = m.name;
+  $('beastHp').textContent = m.hp + ' / ' + m.maxHp;
+  $('beastBar').style.width = Math.max(0, (m.hp / m.maxHp) * 100) + '%';
+  if (m.lastHit) $('lastHit').textContent = '#' + m.lastHit.uid + ' ' + (m.lastHit.name || '') + '  −' + m.lastHit.damage;
+  paintBeastBox();
+}
+function onSlain(m) {
+  $('deadBox').classList.remove('hidden');
+  $('deadText').textContent = '☠  ' + (m.name || ('#' + m.uid)) + ' hạ gục siêu thú!';
+  paintList($('board'), m.top, r => r.total, r => me && r.uid === me.uid);
+}
+function onReset() {
+  beast = null; lastHp = null;
+  $('beastBox').classList.remove('on');
+  $('deadBox').classList.add('hidden');
+  $('board').innerHTML = '';
+  $('lastHit').textContent = '';
+}
+function paintBeastBox() {
+  $('beastBox').classList.toggle('on', !!beast && has('sieuthu'));
+}
+function paintList(ol, rows, score, isMe) {
+  if (!rows) return;
+  ol.innerHTML = '';
+  rows.forEach((r, i) => {
+    const li = document.createElement('li');
+    if (isMe(r)) li.className = 'me';
+    li.innerHTML = '<span class="r">' + (MEDALS[i] || (i + 1)) + '</span><span class="n"></span><span class="d">' + score(r) + '</span>';
+    li.querySelector('.n').textContent = r.name || ('#' + r.uid);
+    ol.appendChild(li);
+  });
+}
+function hurt(dmg) {
+  for (const id of ['beastEm', 'hpbar']) { const el = $(id); el.classList.remove('hurt'); void el.offsetWidth; el.classList.add('hurt'); }
+  const d = document.createElement('div');
+  d.className = 'dmg'; d.textContent = '−' + dmg; d.style.left = (10 + Math.random() * 75) + '%';
+  $('hpbar').parentNode.appendChild(d);
+  setTimeout(() => d.remove(), 1100);
+}
+
+const unlocked = new Set((recall('ws_codes') || '').split(',').filter(Boolean));
+(qs.get('cheat') || '').split(',').forEach(c => { if (CODES[c]) unlocked.add(c); });
+function has(code) { return unlocked.has(code); }
+function applyLocks() {
+  $('onlineBox').classList.toggle('hidden', !has('online'));
+  $('recordsBox').classList.toggle('hidden', !has('kyluc'));
+  paintBeastBox();
+}
+function unlock(code) {
+  if (has(code)) return;
+  unlocked.add(code);
+  store('ws_codes', [...unlocked].join(','));
+  overlay('🔓', 'MỞ KHOÁ: ' + CODES[code].toUpperCase(), '', '', 1800, applyLocks);
+}
+let typed = '';
+addEventListener('keydown', e => {
+  if (e.key.length !== 1) return;
+  typed = (typed + e.key.toLowerCase()).slice(-12);
+  for (const code of Object.keys(CODES)) if (typed.endsWith(code)) unlock(code);
+});
+
+let overlayTimer = null;
+function overlay(emoji, title, sub, cls, ms, after) {
+  $('ovEm').textContent = emoji; $('ovT').textContent = title; $('ovS').textContent = sub;
+  $('overlay').className = 'overlay on ' + (cls || '');
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => { $('overlay').className = 'overlay'; if (after) after(); }, ms);
+}
+function fireworks(ms) {
+  const c = $('fx'), g = c.getContext('2d');
+  c.width = innerWidth; c.height = innerHeight; c.style.display = 'block';
+  const parts = [], colors = ['#ffcc33', '#5ff2b0', '#ff4d5e', '#8b7bf0', '#ffffff'];
+  const burst = () => {
+    const x = Math.random() * c.width, y = Math.random() * c.height * 0.6;
+    for (let i = 0; i < 70; i++) {
+      const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 5;
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 60 + Math.random() * 30, col: colors[i % colors.length] });
+    }
+  };
+  const end = Date.now() + ms;
+  let nextBurst = 0;
+  (function frame() {
+    g.clearRect(0, 0, c.width, c.height);
+    if (Date.now() > nextBurst && Date.now() < end) { burst(); nextBurst = Date.now() + 350; }
+    for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life--; g.globalAlpha = Math.max(0, p.life / 90); g.fillStyle = p.col; g.fillRect(p.x, p.y, 4, 4); }
+    for (let i = parts.length - 1; i >= 0; i--) if (parts[i].life <= 0) parts.splice(i, 1);
+    if (parts.length || Date.now() < end) requestAnimationFrame(frame); else c.style.display = 'none';
+  })();
+}
+function spotlight(m) {
+  if (!me) return;
+  if (m.kind === 'group' && m.group === me.group) {
+    fireworks(SPOTLIGHT_MS);
+    overlay('🎉', me.group.toUpperCase() + ' ĐƯỢC CHỌN!', 'Push code lên git — code sẽ chạy trên ws-2026-server.zingplay.dev. Cả lớp sẽ nối vào server của nhóm bạn.', '', SPOTLIGHT_MS);
+  }
+  if (m.kind === 'player' && (m.uid === me.uid || m.name === me.name)) {
+    overlay('🎯', 'BẠN ĐƯỢC CHỌN!', 'Nhìn lên màn chiếu.', 'red', 4000);
+  }
+}
+
+function openHub() {
+  if (!teacherHost || !me || hub) return;
+  try { hub = new WebSocket(wsUrl(teacherHost)); } catch (e) { hub = null; return; }
+  hub.onopen = () => {
+    const msg = JSON.stringify({ t: 'hub', group: me.group, name: me.name });
+    hub.send(msg);
+    log('hub', msg);
+  };
+  hub.onmessage = event => {
+    let m;
+    try { m = JSON.parse(event.data); } catch (e) { return; }
+    if (!m || !m.cmd) return;
+    log('hub', String(event.data));
+    if (m.cmd === 'spotlight') spotlight(m);
+  };
+  hub.onclose = () => { hub = null; };
+}
+function closeHub() {
+  if (!hub) return;
+  hub.onclose = null;
+  try { hub.close(); } catch (e) {}
+  hub = null;
+}
+
+$('srv').value = qs.get('server') || recall('ws_srv') || teacherHost || LOCAL;
+$('btnConnect').onclick = () => (connState === 'on' || connState === 'retrying') ? disconnect() : connect();
+$('srv').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); connect(); } });
+$('sendRaw').onclick = sendBox;
+$('raw').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBox(); } });
+applyLocks();
+setConn('off', $('srv').value);
+</script>
+</body>
+</html>
