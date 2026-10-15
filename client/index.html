@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Workshop · client</title>
+<style>
+  :root{
+    --bg:#030805; --bg2:#07130b; --bg3:#040c07; --line:#11361f; --line2:#1c6a3a;
+    --txt:#d4ffe4; --dim:#6db98a; --dim2:#3d7a56;
+    --out:#ffb000; --in:#3dff8f; --err:#ff4d5e; --hi:#38e1ff; --gold:#ffd84a; --violet:#c39bff;
+      --m:ui-monospace,"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--m);min-height:100vh;
+       font-variant-ligatures:none;-webkit-font-smoothing:antialiased;font-size:15px}
+  .hidden{display:none!important}
+
+  header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+         display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 18px}
+  .logo{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+  .logo .a{color:var(--in)} .logo .b{color:var(--out)}
+  .stage{color:var(--hi);font-size:14px;border:1px solid var(--hi);border-radius:4px;padding:3px 9px}
+  .clock{color:var(--out);font-size:18px;letter-spacing:.06em;border:1px solid var(--line2);border-radius:4px;padding:2px 9px}
+  .clock.low{color:var(--err);border-color:var(--err)}
+  .sp{flex:1}
+  .badge{font-size:12px;padding:4px 9px;border-radius:4px;background:var(--bg2);color:var(--dim);
+         border:1px solid var(--line);letter-spacing:.04em}
+  .badge.on{color:var(--in);border-color:var(--in)}
+  .badge.me{color:var(--out);border-color:var(--out)}
+  .badge.err{color:var(--err);border-color:var(--err)}
+
+  .layout{max-width:1180px;margin:0 auto;padding:16px 18px 60px;display:grid;
+          grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+  .main,.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .side{position:sticky;top:64px}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}.side{position:static;order:-1}}
+
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px}
+  h2{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+     font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  h2 .step{color:var(--bg);background:var(--dim);border-radius:3px;padding:0 6px;letter-spacing:0}
+  label{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim2);margin-bottom:5px}
+  input[type=text]{width:100%;background:var(--bg3);border:1px solid var(--line2);color:var(--txt);
+                   font-family:var(--m);font-size:15px;padding:9px 11px;border-radius:4px;outline:none}
+  input[type=text]:focus{border-color:var(--hi)}
+  textarea{width:100%;background:var(--bg3);border:1px solid var(--line2);color:var(--out);
+           font-family:var(--m);font-size:15px;line-height:1.6;padding:11px;border-radius:4px;
+           outline:none;resize:vertical;min-height:84px}
+  textarea:focus{border-color:var(--hi)}
+  textarea::placeholder{color:var(--dim2)}
+  .row{display:flex;gap:9px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:130px}
+  .srv{display:flex;gap:8px;align-items:flex-end}
+  .srv .fl{flex:1}
+  .status{font-size:12.5px;margin-top:9px;color:var(--dim)}
+  .status.on{color:var(--in)} .status.err{color:var(--err)}
+
+  button{font-family:var(--m);font-size:14px;letter-spacing:.1em;text-transform:uppercase;
+         border:1px solid var(--line2);border-radius:4px;cursor:pointer;padding:9px 14px;
+         background:var(--bg3);color:var(--txt);white-space:nowrap}
+  button:hover{border-color:var(--hi)}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.jade{border-color:var(--in);color:var(--in)}
+  button.jade:hover{background:rgba(69,221,148,.1)}
+  button.red{border-color:var(--err);color:var(--err)}
+  button.hand.up{border-color:var(--gold);color:var(--gold);background:rgba(255,204,51,.08)}
+  .samples{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .samples button{font-size:12.5px;letter-spacing:.04em;text-transform:none;padding:5px 10px;color:var(--dim)}
+  .samples button:hover{color:var(--txt)}
+  .senderr{display:none;margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--err);border:1px solid var(--err);
+           border-left-width:4px;background:rgba(255,77,94,.08);padding:8px 11px;white-space:pre-wrap;word-break:break-word}
+  .senderr.on{display:block}
+  textarea.bad{border-color:var(--err);box-shadow:0 0 10px rgba(255,77,94,.35)}
+  .hint{font-size:12.5px;color:var(--dim);line-height:1.55}
+  .hint code{background:var(--bg3);padding:2px 5px;border-radius:3px;color:var(--in)}
+
+  .log{background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:10px;
+       font-size:12.5px;line-height:1.6;max-height:420px;min-height:160px;overflow-y:auto;
+       display:flex;flex-direction:column-reverse;gap:3px}
+  .log .l{white-space:pre-wrap;word-break:break-all;padding-left:6px;border-left:2px solid transparent}
+  .log .out{color:var(--out);border-left-color:var(--out)}
+  .log .in{color:var(--in);border-left-color:var(--in)}
+  .log .err{color:var(--err);border-left-color:var(--err)}
+  .log .hub{color:var(--violet);border-left-color:var(--violet)}
+  .log .t{color:var(--dim2)}
+  .empty{color:var(--dim2)}
+
+  .me .big{font-size:34px;line-height:1.1;color:var(--out);font-weight:700}
+  .me .sub{font-size:13px;color:var(--dim);margin-top:4px}
+  .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .facts>div{background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0}
+  .facts .v{font-size:20px;font-weight:700;color:var(--in);word-break:break-word;line-height:1.2}
+  .facts .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim2);margin-top:3px}
+  .title{margin-top:10px;font-size:14px;color:var(--out);border-left:3px solid var(--out);padding-left:9px;display:none}
+  .title.on{display:block}
+  .says{margin-top:10px;font-size:15px;color:var(--out);background:var(--bg3);border:1px solid var(--line);
+        border-left:3px solid var(--out);border-radius:4px;padding:9px 11px;display:none}
+  .says.on{display:block}
+  .says small{display:block;font-size:11px;color:var(--dim2);margin-top:4px}
+
+  .race{display:none}
+  .race.on{display:block;border-left:3px solid var(--out)}
+  .race .nm{font-size:18px;color:var(--out);font-weight:700}
+  .race .hpnum{font-size:13px;color:var(--dim);margin-top:3px}
+  ol.board{list-style:none;display:flex;flex-direction:column;gap:4px;margin-top:10px}
+  ol.board li{display:flex;gap:9px;align-items:center;font-size:13.5px;background:var(--bg3);
+              padding:6px 10px;border-radius:3px;border-left:2px solid var(--line2)}
+  ol.board .r{width:22px;text-align:center;color:var(--dim)}
+  ol.board .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ol.board .d{color:var(--out);font-weight:700}
+  ol.board li.me{border-left-color:var(--out)}
+
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+           background:rgba(11,14,20,.95);z-index:20;text-align:center;padding:5vw}
+  .overlay.on{display:flex}
+  .overlay .em{display:none}
+  .overlay .t{font-size:34px;letter-spacing:.06em;color:var(--out);line-height:1.1;font-weight:700}
+  .overlay .s{font-size:16px;color:var(--dim);margin-top:10px;max-width:600px}
+  .overlay.red{background:rgba(60,8,14,.96)}
+body{background:var(--bg);color:var(--txt)}
+.panel,.card{background:var(--bg2);border:1px solid var(--line);position:relative;border-radius:0}
+h2,h2.gt{color:var(--dim)}
+.brand,.logo{color:var(--dim)}
+.brand .a,.logo .a{color:var(--in)} .brand .b,.logo .b{color:var(--out)}
+.clock,.badge,.stage,.lockbadge,.wsbtn,.conn,.ctl{border-radius:0}
+button,input,textarea,.chip,.cell,.g,.it,.sk,.log,.facts>div{border-radius:0}
+::selection{background:var(--in);color:var(--bg)}
+::-webkit-scrollbar{width:8px;height:8px} ::-webkit-scrollbar-thumb{background:var(--line2)} ::-webkit-scrollbar-track{background:var(--bg3)}
+
+  .overlay .t{font-size:clamp(28px,7vw,64px)}
+  .overlay.grant .t{color:var(--in)}
+  .locked{display:none!important}
+  .arena canvas{width:100%;height:auto;display:block;background:var(--bg3);border:1px solid var(--line2);border-radius:4px;margin:10px 0 8px;outline:none;cursor:pointer}
+  .arena canvas:focus{border-color:var(--out)}
+  .arena.bump canvas{border-color:var(--err)}
+  .arena .bumped{color:var(--err)}
+  .main{counter-reset:step} .step::before{counter-increment:step;content:counter(step)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="a">client</span> &rarr; <span class="b">server</span></div>
+  <span class="stage hidden" id="stageNow"></span>
+  <span class="clock hidden" id="clock"></span>
+  <div class="sp"></div>
+  <span class="badge" id="me">not called</span>
+  <span class="badge" id="conn">Disconnected</span>
+</header>
+
+<div class="layout">
+  <div class="main">
+
+    <div class="card">
+      <h2><span class="step"></span> Server</h2>
+      <div class="srv">
+        <div class="fl"><label for="srv">Address</label><input type="text" id="srv" spellcheck="false" autocomplete="off" placeholder="localhost:9000"></div>
+        <button id="btnConnect">Connect</button>
+      </div>
+      <div class="status" id="connStatus"></div>
+    </div>
+
+    <div class="card" id="loginBox" data-from="w1">
+      <h2><span class="step"></span> Check in</h2>
+      <div class="row">
+        <div><label for="myName">Name</label><input type="text" id="myName" spellcheck="false" autocomplete="off" placeholder="your name"></div>
+        <div><label for="myGroup">Group</label><input type="text" id="myGroup" spellcheck="false" autocomplete="off" placeholder="nhom-3"></div>
+        <div style="flex:0 0 auto;align-self:flex-end"><button id="fillLogin">Fill packet</button></div>
+      </div>
+      <p class="hint" style="margin-top:8px">This button only fills the packet into the box below. Nothing is sent until you press <b>Send</b>.</p>
+    </div>
+
+    <div class="card">
+      <h2><span class="step"></span> Packet</h2>
+      <div class="samples" id="samples"></div>
+      <textarea id="raw" spellcheck="false" placeholder="type one line of JSON, then Enter"></textarea>
+      <div class="row" style="margin-top:11px"><button id="sendRaw" class="jade">Send &crarr;</button></div>
+      <div class="senderr" id="sendErr" role="alert"></div>
+    </div>
+
+    <div class="card arena" id="arenaBox" data-from="w0">
+      <h2>Arena</h2>
+      <canvas id="arena" width="960" height="540" tabindex="0"></canvas>
+      <p class="hint" id="arenaHint">Check in on the main server to join the arena of your group.</p>
+      <p class="hint">Click the arena, then hold the arrow keys (or WASD). Each key change sends one <code>move</code> packet with the keys you hold; the server works out where you are and sends <code>world</code> back 10 times a second. You only see yourself here: the wall shows your whole group.</p>
+      <p class="hint" id="arenaRate"></p>
+      <p class="hint bumped" id="arenaBump"></p>
+    </div>
+
+    <div class="card">
+      <h2>Log</h2>
+      <div class="log" id="log"><div class="l empty">nothing yet...</div></div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="card me">
+      <h2>You</h2>
+      <div class="big" id="uid">&mdash;</div>
+      <div class="sub" id="meLine">not checked in</div>
+      <div class="facts">
+        <div><div class="v" id="online">0</div><div class="k">online</div></div>
+        <div data-from="w2"><div class="v" id="visits">&mdash;</div><div class="k">visits</div></div>
+        <div><div class="v" id="meGroup">&mdash;</div><div class="k">group</div></div>
+      </div>
+      <div class="title" id="sloganBox" data-from="w2"><span id="sloganText"></span><div class="hint" id="sloganSub">your title, saved in the database</div></div>
+      <div class="says" id="broadcastBox" data-from="w1"><span id="broadcastText"></span><small>the server answers</small></div>
+    </div>
+
+    <div class="card" data-from="w1">
+      <h2>Stuck?</h2>
+      <button class="hand" id="btnHand" style="width:100%">Raise hand</button>
+      <p class="hint" id="handHint" style="margin-top:8px">The instructor sees your group on the wall. Press again to lower it.</p>
+    </div>
+
+    <div class="card race" id="raceBox" data-from="w2">
+      <h2>Race</h2>
+      <div class="nm" id="raceState">race is open</div>
+      <div class="hpnum" id="raceCount"></div>
+      <ol class="board" id="board"></ol>
+    </div>
+  </aside>
+</div>
+
+<div class="overlay" id="overlay"><div class="em" id="ovEm"></div><div class="t" id="ovT"></div><div class="s" id="ovS"></div></div>
+
+<script>
+
+const STAMP = '__SERVER__';
+const LOCAL = 'localhost:9000';
+
+const RETRY_MS     = 2000;
+const HUB_GAP_MS   = 900;
+const HUB_TEXT_MAX = 110;
+const DENIED_MS = 1800;
+const LOG_MAX      = 120;
+const LOW_SECONDS  = 60;
+const MEDALS       = ['1','2','3'];
+
+const $  = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const store  = (key, value) => { try { localStorage.setItem(key, value); } catch (e) {} };
+const recall = key => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+
+const ARROW = { out: ' →  ', in: ' ←  ', err: ' ←  ', hub: ' ⇢ main server  ' };
+function log(kind, text) {
+  const box = $('log');
+  const placeholder = box.querySelector('.empty');
+  if (placeholder) placeholder.remove();
+  const line = document.createElement('div');
+  line.className = 'l ' + kind;
+  line.innerHTML = '<span class="t">' + new Date().toTimeString().slice(0, 8) + ARROW[kind] + '</span>';
+  line.appendChild(document.createTextNode(text));
+  box.prepend(line);
+  while (box.children.length > LOG_MAX) box.lastChild.remove();
+}
+
+let ws = null;
+let hub = null;
+let connectedHost = '';
+const hubSentAt = {};
+let me = null;
+let handUp = false;
+let teacherHost = STAMP.charAt(0) === '_' ? recall('ws_teacher') : STAMP;
+let connState = 'off';
+let retryTimer = null;
+
+function wsUrl(host) {
+  const secure = location.protocol === 'https:' && !/^(localhost|127\.0\.0\.1)(:|$)/.test(host);
+  return (secure ? 'wss://' : 'ws://') + host + '/ws';
+}
+
+const CONN_UI = {
+  off:        { btn: 'Connect',     cls: '',    badge: 'Disconnected', st: '○ Disconnected — press Connect',                       stCls: '' },
+  connecting: { btn: 'Connecting…', cls: '',    badge: 'Connecting…',  st: '◌ Connecting to HOST…',                               stCls: '' },
+  on:         { btn: 'Disconnect',  cls: 'red', badge: 'Connected',    st: '● Connected to HOST',                                 stCls: 'on' },
+  failed:     { btn: 'Connect',     cls: '',    badge: 'Failed',       st: '✖ Cannot connect to HOST - server not running? (check the run.bat window)', stCls: 'err' },
+  retrying:   { btn: 'Disconnect',  cls: 'red', badge: 'Retrying…',    st: '◌ Connection to HOST lost — retrying every 2 s',      stCls: 'err' },
+};
+function setConn(state, host) {
+  connState = state;
+  const ui = CONN_UI[state];
+  const btn = $('btnConnect');
+  btn.textContent = ui.btn;
+  btn.className = ui.cls;
+  btn.disabled = state === 'connecting';
+  $('conn').textContent = ui.badge + (state === 'on' ? ' · ' + host : '');
+  $('conn').className = 'badge ' + (state === 'on' ? 'on' : ui.stCls === 'err' ? 'err' : '');
+  $('connStatus').textContent = ui.st.replace('HOST', host || '');
+  $('connStatus').className = 'status ' + ui.stCls;
+}
+
+function connect() {
+  const host = ($('srv').value || LOCAL).trim().replace(/^wss?:\/\//, '').replace(/\/+$/, '');
+  $('srv').value = host;
+  store('ws_srv', host);
+  dropSocket();
+  forgetIdentity();
+  setConn('connecting', host);
+
+  let opened = false;
+  try { ws = new WebSocket(wsUrl(host)); } catch (e) { setConn('failed', host); return; }
+  ws.onopen = () => {
+    opened = true;
+    connectedHost = host;
+    setConn('on', host);
+    if (host !== teacherHost) openHub();
+  };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+  ws.onclose = () => {
+    if (opened) { setConn('retrying', host); retryTimer = setTimeout(connect, RETRY_MS); }
+    else setConn('failed', host);
+  };
+  ws.onmessage = event => {
+    const text = String(event.data);
+    let packet = null;
+    try { packet = JSON.parse(text); } catch (e) {}
+    if (packet && QUIET_IN.includes(packet.cmd)) return handle(packet, host);
+    log('in', text);
+    if (!packet || !packet.cmd) return;
+    hubReport(packet.cmd === 'error' ? 'err' : 'in', text);
+    handle(packet, host);
+  };
+}
+function disconnect() {
+  dropSocket();
+  setConn('off', $('srv').value);
+}
+function dropSocket() {
+  clearTimeout(retryTimer);
+  if (ws) { ws.onclose = null; ws.onerror = null; try { ws.close(); } catch (e) {} ws = null; }
+  closeHub();
+}
+function forgetIdentity() {
+  me = null;
+  lowerHand();
+  $('me').textContent = 'not logged in'; $('me').className = 'badge';
+  $('uid').textContent = '—';
+  $('meLine').textContent = 'not checked in';
+  $('raceBox').classList.remove('on');
+  $('broadcastBox').classList.remove('on');
+  resetArena();
+}
+
+function showErr(text) {
+  log('err', text);
+  const box = $('sendErr');
+  box.textContent = box.classList.contains('on') ? box.textContent + '\n' + text : text;
+  $('sendErr').classList.add('on');
+  $('raw').classList.add('bad');
+}
+function clearErr() {
+  $('sendErr').classList.remove('on');
+  $('raw').classList.remove('bad');
+}
+
+function send(text) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showErr('not connected - press Connect (step 1) first');
+    overlay('', 'ACCESS DENIED', 'not connected - press Connect first', 'red', DENIED_MS);
+    return;
+  }
+  ws.send(text);
+  log('out', text);
+  hubReport('out', text);
+}
+const SAMPLES = [
+  ['Check in',       '{"cmd":"login","name":"your name","group":"your group"}', 'w0'],
+  ['No name',        '{"cmd":"login"}',                                          'w0'],
+  ['Who am I',       '{"cmd":"getUserInfo"}',                                    'w1'],
+  ['Log out',        '{"cmd":"logout"}',                                         'w1'],
+  ['Move right',     '{"cmd":"move","x":1,"y":0}',                              'w0'],
+  ['Server answers', '{"cmd":"broadcast"}',                                      'w1'],
+  ['Claim the prize','{"cmd":"claim"}',                                          'w2'],
+  ['New race',       '{"cmd":"reset"}',                                          'w2'],
+];
+const UNLOCK   = { w0: 1, w1: 2, w2: 4 };
+const SHOW_ALL = Number.MAX_SAFE_INTEGER;
+function unlockTo(level) {
+  document.querySelectorAll('[data-from]').forEach(el => el.classList.toggle('locked', UNLOCK[el.dataset.from] > level));
+}
+
+function paintSamples() {
+  const box = $('samples');
+  for (const [label, payload, from] of SAMPLES) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.title = payload;
+    b.dataset.from = from;
+    b.onclick = () => { $('raw').value = payload; $('raw').focus(); };
+    box.appendChild(b);
+  }
+}
+
+function fillLogin() {
+  const name = $('myName').value.trim();
+  const group = $('myGroup').value.trim();
+  if (!name || !group) { showErr('fill in Name and Group first'); return; }
+  store('ws_name', name); store('ws_group', group);
+  $('raw').value = JSON.stringify({ cmd: 'login', name, group });
+  $('raw').focus();
+}
+
+const NEEDS_LOGIN = ['broadcast', 'claim', 'move'];
+
+function warnBeforeSend(text) {
+  let m; try { m = JSON.parse(text); } catch (e) { return showErr('not valid JSON: ' + e.message + '\ncheck the quotes and commas'); }
+  if (!m || typeof m !== 'object') return;
+  if (!m.cmd) return showErr('no "cmd" in the packet - the server will not know what you want');
+  if (NEEDS_LOGIN.includes(m.cmd) && !me)
+    showErr('"' + m.cmd + '" needs a uid, and you have not checked in yet - send {"cmd":"login","name":...,"group":...} first');
+}
+
+function sendBox() {
+  const text = $('raw').value.trim();
+  clearErr();
+  if (!text) return showErr('the box is empty - type one line of JSON, for example {"cmd":"login"}');
+  warnBeforeSend(text);
+  send(text);
+}
+
+const QUIET_IN      = ['world'];
+const ARENA_KEYS    = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+                        a: [-1, 0], d: [1, 0], w: [0, -1], s: [0, 1] };
+const ARENA_NAME_GAP = 6;
+const ARENA_FONT_PX = 20;
+const ARENA_FONT    = ARENA_FONT_PX + 'px ui-monospace, Consolas, monospace';
+const RATE_MS       = 1000;
+const BUMP_FLASH_MS = 700;
+const arena = { w: 0, h: 0, r: 0, names: new Map(), prev: null, cur: null, held: new Set(), sent: '0,0', count: 0 };
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+function onRoster(m) {
+  Object.assign(arena, { w: m.w, h: m.h, r: m.r, names: new Map(m.players.map(p => [p.uid, p.name])) });
+  $('arenaHint').textContent = 'room ' + m.group + ' · look at the wall to see the others';
+  $('arenaBox').classList.add('on');
+}
+function onWorld(m) {
+  arena.prev = arena.cur;
+  arena.cur = { at: performance.now(), p: new Map(m.p.map(([uid, x, y]) => [uid, [x, y]])) };
+  arena.count++;
+}
+let bumpTimer = null;
+function onBump(m) {
+  $('arenaBox').classList.add('bump');
+  $('arenaBump').textContent = 'the server says you bumped into ' + (m.with || 'somebody');
+  clearTimeout(bumpTimer);
+  bumpTimer = setTimeout(() => $('arenaBox').classList.remove('bump'), BUMP_FLASH_MS);
+}
+function resetArena() {
+  Object.assign(arena, { prev: null, cur: null, sent: '0,0', names: new Map() });
+  arena.held.clear();
+  $('arenaBox').classList.remove('on');
+  $('arenaHint').textContent = 'Check in on the main server to join the arena of your group.';
+}
+function arenaInput() {
+  let x = 0, y = 0;
+  for (const k of arena.held) { x += ARENA_KEYS[k][0]; y += ARENA_KEYS[k][1]; }
+  x = Math.sign(x); y = Math.sign(y);
+  if (x + ',' + y === arena.sent) return;
+  arena.sent = x + ',' + y;
+  send(JSON.stringify({ cmd: 'move', x, y }));
+}
+function arenaKey(e, down) {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (!ARENA_KEYS[k]) return;
+  e.preventDefault();
+  if (down) arena.held.add(k); else arena.held.delete(k);
+  arenaInput();
+}
+function arenaAt(uid, now) {
+  const cur = arena.cur.p.get(uid);
+  const old = arena.prev && arena.prev.p.get(uid);
+  if (!old) return cur;
+  const k = Math.min(1, (now - arena.cur.at) / Math.max(1, arena.cur.at - arena.prev.at));
+  return [old[0] + (cur[0] - old[0]) * k, old[1] + (cur[1] - old[1]) * k];
+}
+function drawArena() {
+  requestAnimationFrame(drawArena);
+  const c = $('arena');
+  if (!arena.cur || !c.offsetParent) return;
+  const ctx = c.getContext('2d'), s = c.width / arena.w, now = performance.now();
+  ctx.fillStyle = css('--bg3'); ctx.fillRect(0, 0, c.width, c.height);
+  ctx.font = ARENA_FONT; ctx.textAlign = 'center';
+  for (const uid of arena.cur.p.keys()) {
+    const [x, y] = arenaAt(uid, now);
+    ctx.fillStyle = css(me && uid === me.uid ? '--out' : '--in');
+    ctx.beginPath(); ctx.arc(x * s, y * s, arena.r * s, 0, Math.PI * 2); ctx.fill();
+    const top = (y - arena.r) * s - ARENA_NAME_GAP;
+    const below = (y + arena.r) * s + ARENA_NAME_GAP + ARENA_FONT_PX;
+    ctx.fillText(arena.names.get(uid) || '#' + uid, x * s, top - ARENA_FONT_PX < 0 ? below : top);
+  }
+}
+function paintArenaRate() {
+  $('arenaRate').textContent = arena.cur ? arena.count + ' world packets in the last second (not shown in the log)' : '';
+  arena.count = 0;
+}
+
+function handle(m, host) {  switch (m.cmd) {
+    case 'login':   onLogin(m, host); break;
+    case 'online':     $('online').textContent = m.count; break;
+    case 'getUserInfo':    onWhoami(m); break;
+    case 'logout':    onLogout(); break;
+    case 'broadcast':     $('broadcastText').textContent = m.text || ''; $('broadcastBox').classList.add('on'); break;
+    case 'prize':     onPrize(m); onPrizeState(m); break;
+    case 'claim':     onClaim(m); break;
+    case 'reset':     onReset(); break;
+    case 'spotlight': spotlight(m); break;
+    case 'stage':     onStage(m); break;
+    case 'timer':     onTimer(m); break;
+    case 'roster':    onRoster(m); break;
+    case 'world':     onWorld(m); break;
+    case 'bump':      onBump(m); break;
+    case 'error':     showErr('server: ' + (m.text || 'error')); break;
+  }
+}
+function onLogin(m, host) {
+  me = { uid: m.uid, name: m.name || '', group: m.group || '-' };
+  store('se_me', JSON.stringify(me));
+  $('uid').textContent = '#' + m.uid;
+  $('meLine').textContent = me.name;
+  $('meGroup').textContent = me.group;
+  $('visits').textContent = m.visits == null ? '—' : m.visits;
+  if (m.slogan) { $('sloganText').textContent = m.slogan; $('sloganBox').classList.add('on'); }
+  if (m.damage != null) $('sloganSub').textContent = 'your title · lifetime damage ' + m.damage + ' · read from the database at login';
+  $('me').textContent = '#' + m.uid + ' ' + me.name + ' · ' + me.group;
+  $('me').className = 'badge me';
+  overlay('', 'ACCESS GRANTED', '#' + m.uid + '  ' + me.name + '  ·  ' + me.group, 'grant', 1800);
+  if (m.teacher) { teacherHost = host; store('ws_teacher', host); }
+  else { openHub(); hubHello(); }
+}
+function onWhoami(m) {
+  $('uid').textContent = '#' + m.uid;
+  $('meLine').textContent = (m.name || '') + (m.seconds == null ? '' : ' · ' + m.seconds + 's here');
+  $('meGroup').textContent = m.group || '-';
+  $('me').textContent = '#' + m.uid + ' ' + (m.name || '') + ' · ' + (m.group || '-')
+                      + (m.seconds == null ? '' : '  ' + m.seconds + 's');
+  $('me').className = 'badge me';
+}
+function onLogout() {
+  forgetIdentity();
+  $('meGroup').textContent = '—';
+  $('me').textContent = 'logged out';
+  $('meLine').textContent = 'logged out';
+}
+function onPrize(m) {
+  if (!m.open) return;
+  if (!m.winner) overlay('', 'RACE IS OPEN', 'Send {"cmd":"claim"} -- first group wins', '', 2600);
+}
+function onClaim(m) {
+  if (m.win) overlay('', 'YOU WON', 'the server waited ' + m.waited + ' ms before writing it down', '', 4000);
+  else overlay('', 'TOO LATE', (m.winner ? m.winner.group + ' claimed it first' : 'somebody was faster'), 'red', 2600);
+}
+function onPrizeState(m) {
+  const box = $('raceBox');
+  if (!m.open) { box.classList.remove('on'); return; }
+  box.classList.add('on');
+  const told = m.told || 0;
+  $('raceState').textContent = m.winner ? 'winner: ' + m.winner.group : 'race is open';
+  $('raceCount').textContent = told > 1 ? told + ' groups were told they won' : told === 1 ? '1 winner' : 'nobody yet';
+  const rows = (m.groups || []).map((g, i) => ({ uid: i, name: typeof g === 'string' ? g : g.group, total: 'won' }));
+  paintList($('board'), rows, r => r.total, r => me && r.name === me.group);
+}
+function onReset() {
+  $('raceState').textContent = 'race is open';
+  $('raceCount').textContent = 'nobody yet';
+  $('board').innerHTML = '';
+}
+function paintList(ol, rows, score, isMe) {
+  if (!rows) return;
+  ol.innerHTML = '';
+  rows.forEach((r, i) => {
+    const li = document.createElement('li');
+    if (isMe(r)) li.className = 'me';
+    li.innerHTML = '<span class="r">' + (MEDALS[i] || (i + 1)) + '</span><span class="n"></span><span class="d">' + score(r) + '</span>';
+    li.querySelector('.n').textContent = r.name || ('#' + r.uid);
+    ol.appendChild(li);
+  });
+}
+
+function onStage(m) {
+  const el = $('stageNow');
+  el.textContent = m.name || '';
+  el.classList.toggle('hidden', !m.name);
+  unlockTo(m.n > 0 ? m.n : SHOW_ALL);
+}
+let timerEnds = 0;
+function onTimer(m) {
+  timerEnds = m.left > 0 ? Date.now() + m.left * 1000 : 0;
+  paintTimer();
+}
+function paintTimer() {
+  const el = $('clock');
+  const left = timerEnds ? Math.max(0, Math.round((timerEnds - Date.now()) / 1000)) : 0;
+  el.classList.toggle('hidden', !left);
+  if (!left) return;
+  el.textContent = String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+  el.classList.toggle('low', left <= LOW_SECONDS);
+}
+setInterval(paintTimer, 500);
+
+function handTarget() {
+  if (hub && hub.readyState === WebSocket.OPEN) return hub;
+  if (ws && ws.readyState === WebSocket.OPEN && connectedHost === teacherHost) return ws;
+  return null;
+}
+function paintHand() {
+  $('btnHand').textContent = handUp ? 'Hand raised - press to lower' : 'Raise hand';
+  $('btnHand').classList.toggle('up', handUp);
+}
+function lowerHand() { handUp = false; paintHand(); }
+function handErr(text) {
+  log('err', text);
+  $('handHint').textContent = text;
+  $('handHint').style.color = 'var(--err)';
+}
+function toggleHand() {
+  const target = handTarget();
+  if (!target) { handErr('cannot reach the main server - connect first, then raise your hand'); return; }
+  if (!hub && !me) { handErr('check in first so the wall knows your group'); return; }
+  $('handHint').style.color = '';
+  handUp = !handUp;
+  const msg = JSON.stringify({ t: 'help', on: handUp });
+  target.send(msg);
+  log('hub', msg);
+  paintHand();
+}
+
+let overlayTimer = null;
+function overlay(emoji, title, sub, cls, ms, after) {
+  $('ovEm').textContent = emoji; $('ovT').textContent = title; $('ovS').textContent = sub;
+  $('overlay').className = 'overlay on ' + (cls || '');
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => { $('overlay').className = 'overlay'; if (after) after(); }, ms);
+}
+function spotlight(m) {
+  if (!me) return;
+  if (m.kind === 'player' && (m.uid === me.uid || m.name === me.name)) {
+    overlay('', 'YOU ARE UP!', 'Look at the wall.', 'red', 4000);
+  }
+  if (m.kind === 'group' && m.group === me.group) {
+    overlay('', 'YOUR GROUP IS UP!', 'Look at the wall.', 'red', 4000);
+  }
+}
+
+function hubIdentity() {
+  if (me) return { name: me.name, group: me.group };
+  return { name: $('myName').value.trim(), group: $('myGroup').value.trim() };
+}
+function hubHello() {
+  if (!hub || hub.readyState !== WebSocket.OPEN) return;
+  const who = hubIdentity();
+  const msg = JSON.stringify({ t: 'hub', group: who.group, name: who.name });
+  hub.send(msg);
+  log('hub', msg);
+}
+function hubReport(kind, text) {
+  if (!hub || hub.readyState !== WebSocket.OPEN) return;
+  const now = Date.now();
+  if (now - (hubSentAt[kind] || 0) < HUB_GAP_MS) return;
+  hubSentAt[kind] = now;
+  hub.send(JSON.stringify({ t: 'act', k: kind, text: text.slice(0, HUB_TEXT_MAX) }));
+}
+
+function openHub() {
+  if (!teacherHost || hub) return;
+  try { hub = new WebSocket(wsUrl(teacherHost)); } catch (e) { hub = null; return; }
+  hub.onopen = hubHello;
+  hub.onmessage = event => {
+    let m;
+    try { m = JSON.parse(event.data); } catch (e) { return; }
+    if (!m || !m.cmd) return;
+    log('hub', String(event.data));
+    if (m.cmd === 'spotlight') spotlight(m);
+    if (m.cmd === 'stage') onStage(m);
+    if (m.cmd === 'timer') onTimer(m);
+  };
+  hub.onclose = () => { hub = null; };
+}
+const WATCH_RETRY_MS = 3000;
+let watcher = null;
+function openWatch() {
+  if (!teacherHost || watcher) return;
+  try { watcher = new WebSocket(wsUrl(teacherHost)); } catch (e) { watcher = null; setTimeout(openWatch, WATCH_RETRY_MS); return; }
+  watcher.onopen = () => watcher.send(JSON.stringify({ t: 'watch' }));
+  watcher.onmessage = event => {
+    let m;
+    try { m = JSON.parse(event.data); } catch (e) { return; }
+    if (m && m.cmd === 'stage') onStage(m);
+    if (m && m.cmd === 'timer') onTimer(m);
+  };
+  watcher.onclose = () => { watcher = null; setTimeout(openWatch, WATCH_RETRY_MS); };
+}
+function closeHub() {
+  if (!hub) return;
+  hub.onclose = null;
+  try { hub.close(); } catch (e) {}
+  hub = null;
+}
+
+$('srv').value = qs.get('server') || recall('ws_srv') || teacherHost || LOCAL;
+$('btnConnect').onclick = () => (connState === 'on' || connState === 'retrying') ? disconnect() : connect();
+$('srv').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); connect(); } });
+$('myName').value  = recall('ws_name')  || '';
+$('myGroup').value = recall('ws_group') || '';
+$('fillLogin').onclick = fillLogin;
+$('sendRaw').onclick = sendBox;
+$('raw').addEventListener('input', clearErr);
+$('btnHand').onclick = toggleHand;
+$('raw').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBox(); } });
+paintSamples();
+$('arena').addEventListener('keydown', e => arenaKey(e, true));
+$('arena').addEventListener('keyup', e => arenaKey(e, false));
+$('arena').addEventListener('blur', () => { arena.held.clear(); if (arena.cur) arenaInput(); });
+requestAnimationFrame(drawArena);
+setInterval(paintArenaRate, RATE_MS);
+unlockTo(teacherHost ? UNLOCK.w0 : SHOW_ALL);
+openWatch();
+setConn('off', $('srv').value);
+</script>
+</body>
+</html>
