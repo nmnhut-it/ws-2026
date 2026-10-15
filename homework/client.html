@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Arena client · homework</title>
+<style>
+  body{margin:0;background:#030805;color:#d4ffe4;font-family:ui-monospace,Consolas,monospace;font-size:15px}
+  main{max-width:1000px;margin:20px auto;padding:0 16px;display:flex;flex-direction:column;gap:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  input,button{font:inherit;background:#040c07;color:#d4ffe4;border:1px solid #1c6a3a;padding:8px 10px}
+  button{cursor:pointer;color:#3dff8f}
+  canvas{width:100%;height:auto;background:#040c07;border:1px solid #1c6a3a;outline:none}
+  canvas:focus{border-color:#ffb000}
+  #log{white-space:pre-wrap;color:#6db98a;max-height:180px;overflow:auto}
+</style>
+</head>
+<body>
+<main>
+  <h1>Arena client</h1>
+  <div class="row">
+    <input id="server" value="ws-2026-server.zingplay.dev" size="32">
+    <input id="name" placeholder="your name">
+    <input id="group" placeholder="nhom-3">
+    <button id="connect">Connect</button>
+  </div>
+  <canvas id="arena" width="960" height="540" tabindex="0"></canvas>
+  <div>Click the arena, then hold the arrow keys.</div>
+  <div id="log"></div>
+</main>
+<script>
+// ---- given: settings, the page and a few helpers ----
+const CLIENT_NAME = 'my-client';
+const KEYS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+const ME_COLOR = '#ffb000', OTHER_COLOR = '#3dff8f', TEXT_COLOR = '#d4ffe4', FIELD_COLOR = '#040c07';
+const NAME_GAP = 8, FONT = '20px ui-monospace, Consolas, monospace';
+const $ = id => document.getElementById(id);
+
+// The server's state, as far as this client knows it.
+let ws = null;
+let myUid = null;
+let field = { w: 960, h: 540, r: 16 };
+let names = new Map();
+let players = [];
+const held = new Set();
+let lastSent = '0,0';
+
+// Print one line under the arena.
+function log(text) { $('log').textContent = text + '\n' + $('log').textContent; }
+
+// wss:// for a real server, ws:// for one on your own machine.
+function wsUrl(host) {
+  const local = /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
+  return (local ? 'ws://' : 'wss://') + host + '/ws';
+}
+// TODO 1 -- open the WebSocket, then send the login packet.
+// On open, send {"cmd":"login","name":...,"group":...,"client":CLIENT_NAME}.
+// On every message, JSON.parse the text and pass it to onPacket().
+function connect() {
+}
+
+// TODO 2 -- read what the server sends.
+// "login"  -> keep m.uid in myUid, so you know which dot is yours.
+// "roster" -> keep m.w, m.h, m.r in field, and every {uid,name} in names.
+// "world"  -> keep m.p in players: a list of [uid, x, y].
+// "error"  -> log(m.text).
+function onPacket(m) {
+}
+
+// TODO 3 -- tell the server which keys you hold.
+// Add up the KEYS entries in held, keep each of x and y at -1, 0 or 1 (Math.sign),
+// and send {"cmd":"move","x":x,"y":y} only when it differs from lastSent.
+function sendKeys() {
+}
+
+// TODO 4 -- draw everybody.
+// For each [uid, x, y] in players: a circle of radius field.r, ME_COLOR when uid is myUid,
+// OTHER_COLOR otherwise, and the name from names above it. Scale by canvas.width / field.w.
+function drawPlayers(ctx, scale) {
+}
+// ---- given: the draw loop and the keyboard ----
+function frame() {
+  requestAnimationFrame(frame);
+  const canvas = $('arena'), ctx = canvas.getContext('2d');
+  ctx.fillStyle = FIELD_COLOR;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawPlayers(ctx, canvas.width / field.w);
+}
+
+// Arrow keys on the arena go into held; every change calls sendKeys().
+function onKey(event, down) {
+  if (!KEYS[event.key]) return;
+  event.preventDefault();
+  if (down) held.add(event.key); else held.delete(event.key);
+  sendKeys();
+}
+
+$('connect').onclick = connect;
+$('arena').addEventListener('keydown', e => onKey(e, true));
+$('arena').addEventListener('keyup', e => onKey(e, false));
+const query = new URLSearchParams(location.search);
+if (query.get('server')) $('server').value = query.get('server');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
