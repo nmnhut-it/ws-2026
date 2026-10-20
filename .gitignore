@@ -1,0 +1,9 @@
+out/
+tests/out/
+build/
+.gradle/
+.idea/
+bin/
+*.class
+players.txt
+players.txt.tmp
